@@ -39,7 +39,7 @@ def get_standard_ct_spend(tx_in: TxInput, payee: Id, script_ct: Script, val: flo
     
     return tx
 
-def get_standard_ct_punish(tx_in: TxInput, payee: Id, script_ct: Script, secret, val: float, fee: float)-> Transaction:
+def get_standard_ct_punish(tx_in: TxInput, payee: Id, script_ct: Script, secret, val: int, fee: int)-> Transaction:
 
     tx_out = TxOutput(val-fee, payee.p2pkh)
     tx = Transaction([tx_in], [tx_out])
@@ -52,9 +52,9 @@ def get_standard_ct_punish(tx_in: TxInput, payee: Id, script_ct: Script, secret,
 
 ### Generalized construction
 
-def get_gen_ct_tx(tx_in: TxInput, id_l: Id, id_r: Id, id_as_l: Id, hashed_secret_rev_l, id_as_r: Id, hashed_secret_rev_r, val: float, fee: float, timelock: int) -> Transaction:
+def get_gen_ct_tx(tx_in: TxInput, id_l: Id, id_r: Id, id_as_l: Id, id_as_r: Id, val: float, fee: float, timelock: int) -> Transaction:
     timelock = 0x2
-    tx_out = TxOutput(val-fee, scripts.get_script_split(id_l, id_r, id_as_l, hashed_secret_rev_l, id_as_r, hashed_secret_rev_r, timelock))
+    tx_out = TxOutput(int(val-fee), scripts.get_script_split(id_l, id_r, id_as_l, id_as_r, timelock))
     tx = Transaction([tx_in], [tx_out])
 
     scriptFToutput = scripts.get_script_ft_output(id_l, id_r)
@@ -66,10 +66,10 @@ def get_gen_ct_tx(tx_in: TxInput, id_l: Id, id_r: Id, id_as_l: Id, hashed_secret
 
     return tx
 
-def get_gen_split_tx(tx_in: TxInput, id_l: Id, id_r: Id, script: Script, val_l: int, val_r, fee: float) -> Transaction:
-    tx_out0 = TxOutput(val_l-0.5*fee, id_l.p2pkh)
-    tx_out1 = TxOutput(val_r-0.5*fee, id_r.p2pkh)
-    tx = Transaction([tx_in], [tx_out0, tx_out1])
+def get_gen_split_tx(tx_in: TxInput, id_l: Id, id_r: Id, payee: Id, script: Script, val: float, fee: float) -> Transaction:
+    tx_out0 = TxOutput(int(val-fee), payee.p2pkh)
+
+    tx = Transaction([tx_in], [tx_out0])
 
     sig_l = id_l.sk.sign_input(tx, 0, Script(script))
     sig_r = id_r.sk.sign_input(tx, 0, Script(script))
@@ -78,17 +78,30 @@ def get_gen_split_tx(tx_in: TxInput, id_l: Id, id_r: Id, script: Script, val_l: 
 
     return tx
 
-def get_gen_punish_tx(tx_in: TxInput, payee: Id, script: Script, id_as: Id, secret_rev, val: int, fee: float, l: bool) -> Transaction:
-    tx_out = TxOutput(val-fee, payee.p2pkh)
+def get_gen_punish_tx(tx_in: TxInput, payee1: Id, payee: Id, script: Script, id_as: Id, val: float, fee: float, l: bool) -> Transaction:
+    tx_out = TxOutput(int(val-fee), payee1.p2pkh)
     tx = Transaction([tx_in], [tx_out])
 
     sig = payee.sk.sign_input(tx, 0, Script(script))
     sig_as = id_as.sk.sign_input(tx, 0, Script(script))
 
     if l:
-        tx_in.script_sig = Script([secret_rev, sig_as, 0x0, sig])
+        tx_in.script_sig = Script([ sig_as, 0x0, sig])
     else:
-        tx_in.script_sig = Script([secret_rev, sig_as, sig, 0x0])
+        tx_in.script_sig = Script([sig_as, sig, 0x0])
+
+    return tx
+def get_gen_ct_punish_tx(tx_in: TxInput, payee: Id, script: Script, id_as: Id, id_as_l: Id, id_as_r: Id, val: float, fee: float, timelock: int) -> Transaction:
+    timelock = 0x2
+    tx_out = TxOutput(int(val-fee), scripts.get_script_split(payee, id_as, id_as_l, id_as_r, timelock))
+    tx = Transaction([tx_in], [tx_out])
+
+    sig = payee.sk.sign_input(tx, 0, Script(script))
+    
+    sig_as = id_as.sk.sign_input(tx, 0, Script(script))
+    
+    tx_in.script_sig = Script([sig_as, sig])
+
 
     return tx
 
@@ -127,3 +140,4 @@ def get_htlc_ct(tx_in: TxInput, id_l: Id, id_r: Id, hashed_secret, hashed_secret
     tx_in.script_sig = Script([sig_r, sig_l])
 
     return tx
+

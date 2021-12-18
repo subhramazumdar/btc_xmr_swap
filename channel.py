@@ -30,7 +30,10 @@ class Channel:
     
     def create_ft(self, input_l: TxInput, input_r: TxInput, val_l: float, val_r: float) -> Transaction:
         txs_in = [input_l, input_r]
-        tx_out = TxOutput(val_l + val_r - self.fee, scripts.get_script_ft_output(self.id_l, self.id_r))
+        
+        
+        tx_out = TxOutput(int(val_l + val_r - self.fee), scripts.get_script_ft_output(self.id_l, self.id_r))
+        
         tx = Transaction(txs_in, [tx_out])
 
         sig_l = self.id_l.sk.sign_input(tx, 0 , self.id_l.p2pkh)
@@ -42,8 +45,8 @@ class Channel:
 
     def create_close_tx(self, valA: float, valB: float) -> Transaction:
         tx_in = TxInput(self.ft.get_txid(), 0)
-        tx_out_l = TxOutput(valA - self.fee, self.id_l.p2pkh)
-        tx_out_r = TxOutput(valB - self.fee, self.id_r.p2pkh)
+        tx_out_l = TxOutput(int(valA - self.fee), self.id_l.p2pkh)
+        tx_out_r = TxOutput(int(valB - self.fee), self.id_r.p2pkh)
 
         tx = Transaction([tx_in], [tx_out_l, tx_out_r])
 
@@ -65,7 +68,7 @@ class Channel:
         channel = Channel(id_l, id_r, fee, ctype)
         ft = channel.create_ft(input_l, input_r, val_l, val_r)
         channel.set_ft(ft, val_r, val_r)
-        channel.update(val_l, val_r, ctype)
+        channel.update(int(val_l), int(val_r), ctype)
         return channel
 
     def new_state(self, type: int, tx_in, val_l: float, val_r: float, id_ingrid: Id=None) -> State:
@@ -86,5 +89,6 @@ class Channel:
     def close(self, val_l, val_r):
         self.state_list.append(self.state)
         self.state = None
-        self.close_tx = self.create_close_tx(val_l, val_r)
+        self.close_tx = self.create_close_tx(int(val_l),int(val_r))
+
 

@@ -6,6 +6,12 @@ import scripts
 
 init.init_network()
 
+def get_script_ft_output1(id_a: Id) -> Script:
+    scriptFToutput = Script([
+                    id_a.pk.to_hex(), 'OP_CHECKSIGVERIFY']) # input: sigB, sigA
+    return scriptFToutput
+
+
 def get_script_ft_output(id_a: Id, id_b: Id) -> Script:
     scriptFToutput = Script([
                     id_a.pk.to_hex(), 'OP_CHECKSIGVERIFY', id_b.pk.to_hex(), 'OP_CHECKSIG']) # input: sigB, sigA
@@ -21,19 +27,17 @@ def get_script_lightning_locked(id_owner: Id, id_punisher: Id, hashedsecret, del
                     'OP_ENDIF', 0x1]) # input: revsecret, sigPunisher OR (after some time delta) sigOwner
     return scriptLightningLocked
 
-def get_script_split(id_a: Id, id_b: Id, id_as_a: Id, hashedsecret_rev_a, id_as_b: Id, hashedsecret_rev_b,  delta) -> Script:
+def get_script_split(id_a: Id, id_b: Id, id_as_a: Id, id_as_b: Id,  delta) -> Script:
     scriptCToutput = Script([id_a.pk.to_hex(), 'OP_CHECKSIG', 'OP_SWAP', id_b.pk.to_hex(), 'OP_CHECKSIG',
                     'OP_IF', # sigB?
                         'OP_IF', # sigA & sigB valid
                             delta, 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP',
                         'OP_ELSE', # sigB valid (check if B has secrets of A)
                             id_as_a.pk.to_hex(), 'OP_CHECKSIGVERIFY',
-                            'OP_HASH256', hashedsecret_rev_a, 'OP_EQUALVERIFY',
                         'OP_ENDIF',
                     'OP_ELSE',
                         'OP_IF', # sigA valid (check if A has secrets of B)
                             id_as_b.pk.to_hex(), 'OP_CHECKSIGVERIFY',
-                            'OP_HASH256', hashedsecret_rev_b, 'OP_EQUALVERIFY',
                         'OP_ELSE',
                             'OP_RETURN',
                         'OP_ENDIF',
